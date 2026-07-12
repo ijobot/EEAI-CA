@@ -1,7 +1,7 @@
 {
   "model_name": "logistic_regression",
   "model_version": "0.1.0",
-  "timestamp": "2026-07-12T11:37:09.379533+00:00",
+  "timestamp": "2026-07-12T14:02:42.007609+00:00",
   "n_test_samples": 42,
   "labels": [
     "y2",
