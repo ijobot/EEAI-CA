@@ -1,4 +1,4 @@
-from model.randomforest import RandomForest
+from src.model.randomforest import RandomForest
 
 
 def model_predict(data, df, name):

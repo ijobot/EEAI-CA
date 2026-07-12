@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 
-from model.base import BaseModel
+from src.model.base import BaseModel
 
 seed = 0
 np.random.seed(seed)

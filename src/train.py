@@ -5,8 +5,8 @@ import pandas as pd
 
 from Config import Config
 from embeddings import get_tfidf_embd
-from modelling.data_model import Data
-from modelling.modelling import model_predict
+from src.modelling.data_model import Data
+from src.modelling.modelling import model_predict
 from preprocess import de_duplication, get_input_data, noise_remover
 
 seed = 0
