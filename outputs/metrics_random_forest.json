@@ -1,0 +1,45 @@
+{
+  "model_name": "random_forest",
+  "model_version": "0.1.0",
+  "timestamp": "2026-07-12T11:37:09.121374+00:00",
+  "n_test_samples": 42,
+  "labels": [
+    "y2",
+    "y3",
+    "y4"
+  ],
+  "per_label": {
+    "y2": {
+      "accuracy": 0.7380952380952381,
+      "precision_macro": 0.8166666666666668,
+      "recall_macro": 0.6467731829573934,
+      "f1_macro": 0.6623931623931624,
+      "f1_weighted": 0.7203907203907204,
+      "n_classes": 3,
+      "support": 42
+    },
+    "y3": {
+      "accuracy": 0.6428571428571429,
+      "precision_macro": 0.49903846153846154,
+      "recall_macro": 0.488348830656523,
+      "f1_macro": 0.4817098610202058,
+      "f1_weighted": 0.6502581527212068,
+      "n_classes": 11,
+      "support": 42
+    },
+    "y4": {
+      "accuracy": 0.6428571428571429,
+      "precision_macro": 0.4255952380952381,
+      "recall_macro": 0.4551542207792208,
+      "f1_macro": 0.43116946778711485,
+      "f1_weighted": 0.6031639322395626,
+      "n_classes": 14,
+      "support": 42
+    }
+  },
+  "overall": {
+    "hamming_loss": 0.3253968253968254,
+    "exact_match_accuracy": 0.5238095238095238,
+    "mean_f1_macro": 0.525090830400161
+  }
+}

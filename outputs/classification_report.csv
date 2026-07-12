@@ -1,0 +1,39 @@
+label,class,precision,recall,f1,support
+y2,Others,1.0,0.2857,0.4444,7
+y2,Problem/Fault,0.65,0.8125,0.7222,16
+y2,Suggestion,0.8,0.8421,0.8205,19
+y2,macro avg,0.8167,0.6468,0.6624,42
+y2,weighted avg,0.7762,0.7381,0.7204,42
+y3,AppGallery-Install/Upgrade,0.8,0.6667,0.7273,6
+y3,AppGallery-Use,0.0,0.0,0.0,2
+y3,Coupon/Gifts/Points Issues,1.0,0.8,0.8889,5
+y3,General,0.0,0.0,0.0,1
+y3,Invoice,0.5,1.0,0.6667,1
+y3,Other,0.0,0.0,0.0,0
+y3,Others,0.0,0.0,0.0,0
+y3,Payment,0.6875,0.8462,0.7586,13
+y3,Payment issue,1.0,1.0,1.0,1
+y3,Refund,0.0,0.0,0.0,1
+y3,Third Party APPs,1.0,1.0,1.0,1
+y3,VIP / Offers / Promotions,1.0,0.75,0.8571,4
+y3,unknown,0.5,0.2857,0.3636,7
+y3,macro avg,0.499,0.4883,0.4817,42
+y3,weighted avg,0.6842,0.6429,0.6503,42
+y4,Can't download Apps,0.0,0.0,0.0,0
+y4,Can't install Apps,0.6667,0.6667,0.6667,3
+y4,Can't update Apps,0.0,0.0,0.0,2
+y4,Can't use or acquire,1.0,1.0,1.0,4
+y4,Cooperated campaign issue,0.0,0.0,0.0,1
+y4,Invoice related request,0.5,1.0,0.6667,1
+y4,Offers / Vouchers / Promotions,1.0,0.75,0.8571,4
+y4,Other download/install/update issue,0.0,0.0,0.0,1
+y4,Others,0.5,0.3333,0.4,3
+y4,Personal data,0.0,0.0,0.0,0
+y4,Query deduction details,0.0,0.0,0.0,2
+y4,Refund,1.0,1.0,1.0,1
+y4,Risk Control,1.0,1.0,1.0,1
+y4,Subscription cancellation,0.6429,0.8182,0.72,11
+y4,Within 14 days of purchase (not product issue),0.0,0.0,0.0,1
+y4,unknown,0.5,0.7143,0.5882,7
+y4,macro avg,0.4256,0.4552,0.4312,42
+y4,weighted avg,0.585,0.6429,0.6032,42

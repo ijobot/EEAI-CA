@@ -1,0 +1,51 @@
+row_index,text_snippet,label,true,predicted
+65,,y2,Others,Problem/Fault
+68,how do become vip if do saw if it right you have to spend chf every month and spend over chf wanted to ask do get the vip for the exclusive monthly offer,y2,Problem/Fault,Suggestion
+28,description failed to install update mi vydeoplayer contact information opis zlyhava in talacia aktualiz cie mi vydeoplayer kontaktn inform cie,y2,Problem/Fault,Others
+131,product cloud requests upgrade cloud storage contact full name pavol hete phone numbe contact email address company id account sum of the issue dobr de plat za ,y2,Suggestion,Problem/Fault
+63,,y2,Others,Problem/Fault
+156,jag vill avsluta abonnemanget med fakturerings id y us,y2,Suggestion,Problem/Fault
+125,this is the mail system at host frasgout his company com m sorry to have to inform you that your message could not be delivered to one or more recipients it att,y2,Others,Suggestion
+118,please follow the steps below if the system keeps displaying message indicating that the app is being installed delete the downloaded app package or terminate t,y2,Problem/Fault,Others
+45,stimate client mul umim a contactat aspiegel sper c sim i bine pentru v oferi cea mai bun solu ie rug s specifica cererea dumneavoastr cu urm toarele informa ii,y2,Suggestion,Others
+117,we are bringing you an answer regarding your concern after investigation it seems that you haven purchased the cloud plan through the campaign page instead you ,y2,Problem/Fault,Suggestion
+3,description contact information,y2,Suggestion,Problem/Fault
+127,chiedo cortesemente che sia bloccato abbonamento grazie,y2,Suggestion,Problem/Fault
+173,sehr geehrte frau vielen dank dass sie sich r company entschieden haben wir hoffen dass es ihnen gut geht diese mail bezieht sich auf ihr anliegen das abonnemen,y3,Payment,Invoice
+65,,y3,unknown,General
+68,how do become vip if do saw if it right you have to spend chf every month and spend over chf wanted to ask do get the vip for the exclusive monthly offer,y3,VIP / Offers / Promotions,Other
+122,to whom it concern am so confused with payment you cashed out of my paypal account want to cancle any submissions that had with you which don remember any pleas,y3,Payment,Other
+131,product cloud requests upgrade cloud storage contact full name pavol hete phone numbe contact email address company id account sum of the issue dobr de plat za ,y3,Payment,Invoice
+183,ik wil mijn abonnement opzeggen per oktober hoe moet dat mvgr,y3,Payment,Payment issue
+63,,y3,unknown,General
+156,jag vill avsluta abonnemanget med fakturerings id y us,y3,Payment,Third Party APPs
+141,ask you to clarify your request so that we can give you the best possible solution am able to understand that payment was made from your account but it is not c,y3,Payment,Other
+125,this is the mail system at host frasgout his company com m sorry to have to inform you that your message could not be delivered to one or more recipients it att,y3,unknown,Payment
+118,please follow the steps below if the system keeps displaying message indicating that the app is being installed delete the downloaded app package or terminate t,y3,AppGallery-Install/Upgrade,Payment
+49,we hope you re doing well description of the issue screenshot or record video of error when issue happened your huawei id app gallery hms core open then take sc,y3,unknown,Others
+123,,y3,Refund,Payment
+20,beskrivelse installation fejl kontaktoplysninger,y3,AppGallery-Install/Upgrade,General
+45,stimate client mul umim a contactat aspiegel sper c sim i bine pentru v oferi cea mai bun solu ie rug s specifica cererea dumneavoastr cu urm toarele informa ii,y3,AppGallery-Use,unknown
+41,we hope you re doing well description of the issue screenshot or record video of error when issue happened your huawei id app gallery hms core open then take sc,y3,unknown,Others
+85,for choosing we hope that you are doing well am glad to assist you with your inquiry and will do my best to help you with your problem perform the following to ,y3,General,Payment
+117,we are bringing you an answer regarding your concern after investigation it seems that you haven purchased the cloud plan through the campaign page instead you ,y3,Coupon/Gifts/Points Issues,Payment
+3,description contact information,y3,AppGallery-Use,AppGallery-Install/Upgrade
+0,huawei,y3,unknown,AppGallery-Install/Upgrade
+127,chiedo cortesemente che sia bloccato abbonamento grazie,y3,Payment,Payment issue
+173,sehr geehrte frau vielen dank dass sie sich r company entschieden haben wir hoffen dass es ihnen gut geht diese mail bezieht sich auf ihr anliegen das abonnemen,y4,Subscription cancellation,Invoice related request
+65,,y4,unknown,Personal data
+122,to whom it concern am so confused with payment you cashed out of my paypal account want to cancle any submissions that had with you which don remember any pleas,y4,Subscription cancellation,Refund
+28,description failed to install update mi vydeoplayer contact information opis zlyhava in talacia aktualiz cie mi vydeoplayer kontaktn inform cie,y4,Can't update Apps,unknown
+168,could you please tell me what this payment is for,y4,Query deduction details,Subscription cancellation
+131,product cloud requests upgrade cloud storage contact full name pavol hete phone numbe contact email address company id account sum of the issue dobr de plat za ,y4,Subscription cancellation,Payment failed
+183,ik wil mijn abonnement opzeggen per oktober hoe moet dat mvgr,y4,Subscription cancellation,Risk Control
+63,,y4,unknown,Personal data
+156,jag vill avsluta abonnemanget med fakturerings id y us,y4,Subscription cancellation,Refund
+141,ask you to clarify your request so that we can give you the best possible solution am able to understand that payment was made from your account but it is not c,y4,Query deduction details,Subscription cancellation
+125,this is the mail system at host frasgout his company com m sorry to have to inform you that your message could not be delivered to one or more recipients it att,y4,unknown,Query deduction details
+118,please follow the steps below if the system keeps displaying message indicating that the app is being installed delete the downloaded app package or terminate t,y4,Can't install Apps,unknown
+165,we hope you re doing well this email is regarding your concern about cancelling your subscription without access to your company device ll be more than happy to,y4,Subscription cancellation,Query deduction details
+123,,y4,Within 14 days of purchase (not product issue),Subscription cancellation
+20,beskrivelse installation fejl kontaktoplysninger,y4,Other download/install/update issue,Personal data
+85,for choosing we hope that you are doing well am glad to assist you with your inquiry and will do my best to help you with your problem perform the following to ,y4,Others,Subscription cancellation
+117,we are bringing you an answer regarding your concern after investigation it seems that you haven purchased the cloud plan through the campaign page instead you ,y4,Cooperated campaign issue,Query deduction details
