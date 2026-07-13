@@ -1,8 +1,6 @@
-"""Logistic Regression model wrapped for multi-output (multi-label) classification.
+# logistic regression model (Task 4 comparison)
 
-Provides the second model for the Task 4 comparison. Mirrors the random forest
-model's structure, so it drops into the training pipeline with no other changes.
-"""
+# built the same as random forest model so it can be dropped in without other changes needed
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.multioutput import MultiOutputClassifier
@@ -22,9 +20,8 @@ class LogisticRegressionModel(BaseModel):
         max_iter: int = 1000,
         **kwargs,
     ) -> None:
-        # lbfgs handles multiclass natively and converges cleanly on this TF-IDF
-        # data; max_iter is raised from the default 100 to avoid non-convergence
-        # on the sparse, high-dimensional features.
+        # max_iter is much higher than the default 100 because we're dealing with a huge amount of features (1199),
+        # but very sparse data in them (lots of zeroes in our matrix).  1000 iterations gives the model a longer runway to reach convergence.
         self._C = C
         self._class_weight = class_weight
         self._solver = solver
@@ -41,5 +38,5 @@ class LogisticRegressionModel(BaseModel):
             random_state=Config.SEED,
             **self._kwargs,
         )
-        # One independent LR per label column (y2, y3, y4).
+        # one LR per label column (y2, y3, y4)
         return MultiOutputClassifier(base)

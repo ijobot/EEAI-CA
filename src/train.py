@@ -1,16 +1,7 @@
-"""Training pipeline entry point.
+# training pipeline
 
-Orchestrates the full flow in leakage-safe order:
-    load -> preprocess -> SPLIT -> fit features on TRAIN only -> transform
-         -> train each model -> evaluate -> save artefacts + outputs
-
-Run:
-    python -m src.train
-    python -m src.train --input data/AppGallery.csv data/Purchasing.csv
-
-Designed around a LIST of models: adding a new model requires only appending an
-instance to DEFAULT_MODELS — no changes to this file's logic.
-"""
+# Orchestrates the full pipeline flow: load, preprocess, split, fit features on train, transform, train each model, evaluate/save/output.
+# Allows new models to be added in easily without having to change this file
 
 import argparse
 import logging
@@ -46,18 +37,10 @@ DEFAULT_MODELS: list[BaseModel] = [
 ]
 
 
-# --------------------------------------------------------------------------- #
-# Split
-# --------------------------------------------------------------------------- #
+# split data for train/test
 def split_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Stratified train/test split on the core label y2 when safe.
-
-    y2 is fully populated and its rarest class is large, so stratifying on it
-    keeps the primary target balanced across splits. We fall back to a random
-    split if any y2 class is too small to stratify. This replaces the prototype's
-    fragile `new_test_size = X.shape[0] * 0.2 / X_good.shape[0]` formula, which
-    could exceed 1 and crash.
-    """
+    # Stratification ensures we don't end up with lopsided instances of classes in train or test rows.
+    # This replaces the prototype's `new_test_size = X.shape[0] * 0.2 / X_good.shape[0]` formula, which could exceed 1 and crash.
     stratify = df["y2"] if df["y2"].value_counts().min() >= 2 else None
     if stratify is None:
         logger.warning("y2 has a singleton class; using a non-stratified split.")
@@ -75,13 +58,9 @@ def split_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     _warn_unseen_classes(train_df, test_df)
     return train_df, test_df
 
-
+# Helper function to ensure that classes absent from the training run are flagged.
+# The model can't predict what is has never seen during training, and with a small dataset, this is possible.
 def _warn_unseen_classes(train_df: pd.DataFrame, test_df: pd.DataFrame) -> None:
-    """Flag test classes absent from train — these are unavoidable errors.
-
-    Useful context for error analysis (Task 4): the model literally never saw
-    these classes, so it cannot predict them regardless of quality.
-    """
     for col in Config.CLASS_COLS:
         unseen = set(test_df[col]) - set(train_df[col])
         if unseen:
@@ -91,9 +70,7 @@ def _warn_unseen_classes(train_df: pd.DataFrame, test_df: pd.DataFrame) -> None:
             )
 
 
-# --------------------------------------------------------------------------- #
-# Per-model output paths
-# --------------------------------------------------------------------------- #
+# output paths
 def _metrics_path(name: str) -> Path:
     return Config.OUTPUTS_DIR / f"metrics_{name}.json"
 
@@ -110,36 +87,28 @@ def _model_path(name: str) -> Path:
     return Config.ARTIFACTS_DIR / f"model_{name}.joblib"
 
 
-# --------------------------------------------------------------------------- #
-# Orchestration
-# --------------------------------------------------------------------------- #
+# run the training models
 def run(
     models: list[BaseModel] | None = None,
     input_files: list[Path] | None = None,
 ) -> dict:
-    """Train and evaluate every model; save artefacts and outputs.
-
-    The best model by mean macro-F1 is also saved as the default artefacts
-    (model.joblib) that predict.py loads.
-    """
     Config.ensure_dirs()
     models = models if models is not None else DEFAULT_MODELS
 
-    # 1. Data
+    # data
     df = preprocess(load_training_data(input_files))
 
-    # 2. Split BEFORE fitting features (this is the leakage fix)
+    # split BEFORE fitting features (leakage fix)
     train_df, test_df = split_data(df)
 
-    # 3. Fit features on TRAIN only, transform both; vectoriser is shared by
-    #    all models, so we fit it once.
+    # fit features on TRAIN only and transform both; vectoriser is shared by all models
     fx = FeatureExtractor().fit(train_df)
     X_train, X_test = fx.transform(train_df), fx.transform(test_df)
     Y_train = train_df[Config.CLASS_COLS].to_numpy()
     Y_test = test_df[Config.CLASS_COLS].to_numpy()
     fx.save()  # artifacts/vectorizer.joblib
 
-    # 4. Train + evaluate each model
+    # train and evaluate
     results: dict[str, dict] = {}
     best_name: str | None = None
     best_model: BaseModel | None = None
@@ -164,7 +133,7 @@ def run(
         if best_name is None or score > results[best_name]["overall"]["mean_f1_macro"]:
             best_name, best_model, best_pred = model.name, model, y_pred
 
-    # 5. Promote the best model to the default artefacts + write comparison
+    # best model saved to the default artefacts, log comparison
     best_model.save(Config.MODEL_PATH)
     save_report(build_classification_report_df(Y_test, best_pred), Config.CLASSIFICATION_REPORT_PATH)
     save_metrics(
@@ -179,7 +148,7 @@ def run(
     logger.info("Best model: '%s' (saved as %s)", best_name, Config.MODEL_PATH.name)
     return results
 
-
+# help with flag inputs in command line, same as other instances
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train the multi-label classifier.")
     parser.add_argument(

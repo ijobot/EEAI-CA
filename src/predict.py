@@ -1,16 +1,7 @@
-"""Batch inference pipeline (Task 3).
+# batch inference pipeline (Task 3)
 
-Loads the persisted model + vectoriser, runs the IDENTICAL preprocessing and
-feature extraction used in training, and writes a predictions CSV.
-
-Run:
-    python -m src.predict --input data/new_messages.csv --output outputs/predictions.csv
-
-Training-serving consistency is guaranteed structurally: this module calls the
-same preprocess() and the same fitted FeatureExtractor as train.py, rather than
-re-implementing any cleaning or vectorisation. There is no parallel inference-only
-data path that could drift from training.
-"""
+# Loads the model and vectoriser (both persisted from previous training session), then runs the indentical preprocessing
+# steps and feature extraction steps used in training.  Save predictions to a CSV.
 
 import argparse
 import logging
@@ -27,12 +18,11 @@ from src.preprocessing import preprocess
 
 logger = logging.getLogger(__name__)
 
-# Preferred identifier columns, in priority order; falls back to the row index.
+# preferred identifier columns in  order
 _ID_CANDIDATES = ("message_id", "Ticket id", "id", "row_id")
 
-
+# Returns an identifier (from the list above) and the column it came from.  If none found, falls back to index for safety.
 def _resolve_ids(df: pd.DataFrame) -> tuple[list[str], str]:
-    """Return a per-row identifier and the column it came from."""
     for col in _ID_CANDIDATES:
         if col in df.columns:
             return df[col].astype(str).tolist(), col
@@ -45,24 +35,23 @@ def predict_file(
     model_path: Path = Config.MODEL_PATH,
     vectorizer_path: Path = Config.VECTORIZER_PATH,
 ) -> pd.DataFrame:
-    """Run batch inference on a CSV of new messages and write predictions."""
-    # 1. Load artefacts — same feature space and model produced by training.
+    # load artefacts, same feature space and model produced by training
     fx = FeatureExtractor.load(vectorizer_path)
     model = BaseModel.load(model_path)
     labels = model.labels_ or list(Config.CLASS_COLS)
 
-    # 2. Load raw messages (labels not required). Keep df_raw for reference text.
+    # load raw messages
     df_raw = load_inference_data(input_path)
 
-    # 3. IDENTICAL preprocessing + features as training.
+    # IDENTICAL preprocessing and features used in training
     df_clean = preprocess(df_raw)
     X = fx.transform(df_clean)
 
-    # 4. Predict + per-label confidence.
+    # predict and confidence
     preds = model.predict(X)
     conf = model.confidence(X)
 
-    # 5. Assemble output.
+    # output
     ids, id_source = _resolve_ids(df_raw)
     timestamp = datetime.now(timezone.utc).isoformat()
 
@@ -77,13 +66,13 @@ def predict_file(
     out["model_version"] = model.model_version
     out["predicted_at"] = timestamp
 
-    # 6. Save.
+    # save
     Config.ensure_dirs()
     out.to_csv(output_path, index=False)
     logger.info("Wrote %s prediction(s) -> %s", len(out), output_path)
     return out
 
-
+# handles flags for command line inputs
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Batch inference on new customer messages.")
     parser.add_argument("--input", type=Path, required=True, help="CSV of new messages.")

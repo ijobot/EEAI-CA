@@ -1,14 +1,7 @@
-"""Model evaluation: per-label metrics, multi-output metrics, and error analysis.
+# pre-label metrics, multi-output metrics, error analysis
 
-Replaces the prototype's single printed classification_report with structured,
-saved outputs suitable for comparing models (Task 4):
-
-    evaluate(...)                      -> metrics dict (per-label + overall)
-    build_classification_report_df(...)-> tidy per-class precision/recall/F1 table
-    collect_misclassifications(...)    -> examples of errors for the error analysis
-    save_metrics(...) / save_report(...) / save_predictions(...)
-    evaluate_and_save(...)             -> run all of the above in one call
-"""
+# This file replaces the prototype's classification_report in a more structured way.  
+# It saves the various outputs to actual files in the /outputs folder for future discovery
 
 import json
 import logging
@@ -27,14 +20,12 @@ from src.config import Config
 
 logger = logging.getLogger(__name__)
 
-
+# timestamping actions with iso format
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-# --------------------------------------------------------------------------- #
-# Metrics
-# --------------------------------------------------------------------------- #
+# metrics
 def evaluate(
     y_true: np.ndarray,
     y_pred: np.ndarray,
@@ -42,29 +33,32 @@ def evaluate(
     model_name: str = "unknown",
     model_version: str = Config.MODEL_VERSION,
 ) -> dict:
-    """Compute per-label and overall multi-output metrics.
-
-    y_true / y_pred are 2D arrays of shape (n_samples, n_labels).
-    """
     labels = labels or Config.CLASS_COLS
     per_label: dict[str, dict] = {}
 
-    for i, label in enumerate(labels):
-        yt, yp = y_true[:, i], y_pred[:, i]
-        p_mac, r_mac, f_mac, _ = precision_recall_fscore_support(
-            yt, yp, average="macro", zero_division=0
+    for label_index, label in enumerate(labels):
+        # true and predicted values for just this one label's column
+        true_col = y_true[:, label_index]
+        pred_col = y_pred[:, label_index]
+
+        # each class weighted equally
+        precision_macro, recall_macro, f1_macro, _ = precision_recall_fscore_support(
+            true_col, pred_col, average="macro", zero_division=0
         )
-        _, _, f_wt, _ = precision_recall_fscore_support(
-            yt, yp, average="weighted", zero_division=0
+
+        # classes weighted by their sample count
+        _, _, f1_weighted, _ = precision_recall_fscore_support(
+            true_col, pred_col, average="weighted", zero_division=0
         )
+
         per_label[label] = {
-            "accuracy": float(accuracy_score(yt, yp)),
-            "precision_macro": float(p_mac),
-            "recall_macro": float(r_mac),
-            "f1_macro": float(f_mac),
-            "f1_weighted": float(f_wt),
-            "n_classes": int(len(np.unique(yt))),
-            "support": int(len(yt)),
+            "accuracy": float(accuracy_score(true_col, pred_col)),
+            "precision_macro": float(precision_macro),
+            "recall_macro": float(recall_macro),
+            "f1_macro": float(f1_macro),
+            "f1_weighted": float(f1_weighted),
+            "n_classes": int(len(np.unique(true_col))),
+            "support": int(len(true_col)),
         }
 
     overall = {
@@ -72,7 +66,9 @@ def evaluate(
         "hamming_loss": float((y_true != y_pred).mean()),
         # Fraction of rows where ALL labels are correct (strict).
         "exact_match_accuracy": float((y_true == y_pred).all(axis=1).mean()),
-        "mean_f1_macro": float(np.mean([per_label[l]["f1_macro"] for l in labels])),
+        "mean_f1_macro": float(
+            np.mean([per_label[label]["f1_macro"] for label in labels])
+        ),
     }
 
     return {
@@ -85,13 +81,12 @@ def evaluate(
         "overall": overall,
     }
 
-
+# build the report
 def build_classification_report_df(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     labels: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Tidy per-class precision/recall/F1/support table across all labels."""
     labels = labels or Config.CLASS_COLS
     rows = []
     for i, label in enumerate(labels):
@@ -99,7 +94,7 @@ def build_classification_report_df(
             y_true[:, i], y_pred[:, i], output_dict=True, zero_division=0
         )
         for cls, scores in report.items():
-            if isinstance(scores, dict):  # skip the scalar 'accuracy' entry
+            if isinstance(scores, dict):
                 rows.append(
                     {
                         "label": label,
@@ -113,9 +108,7 @@ def build_classification_report_df(
     return pd.DataFrame(rows)
 
 
-# --------------------------------------------------------------------------- #
-# Error analysis (Task 4)
-# --------------------------------------------------------------------------- #
+# error analysis (Task 4)
 def collect_misclassifications(
     test_df: pd.DataFrame,
     y_true: np.ndarray,
@@ -125,10 +118,7 @@ def collect_misclassifications(
     max_examples: int | None = 50,
     snippet_len: int = 160,
 ) -> pd.DataFrame:
-    """Long-form table of individual label errors, for the error-analysis table.
-
-    One row per (sample, label) where the prediction was wrong.
-    """
+    # outputs a table for individual errors, one row for each incorrect prediction
     labels = labels or Config.CLASS_COLS
     texts = test_df[text_col].fillna("").astype(str).str.slice(0, snippet_len).to_numpy()
 
@@ -151,9 +141,7 @@ def collect_misclassifications(
     return out
 
 
-# --------------------------------------------------------------------------- #
-# Persistence
-# --------------------------------------------------------------------------- #
+# saving outputs and reports
 def save_metrics(metrics: dict, path: Path = Config.METRICS_PATH) -> Path:
     Config.ensure_dirs()
     with open(path, "w", encoding="utf-8") as f:
@@ -168,7 +156,7 @@ def save_report(report_df: pd.DataFrame, path: Path = Config.CLASSIFICATION_REPO
     logger.info("Saved classification report -> %s", path)
     return path
 
-
+# evaluate, build, and call both of the above save functions
 def evaluate_and_save(
     test_df: pd.DataFrame,
     y_true: np.ndarray,
@@ -178,7 +166,6 @@ def evaluate_and_save(
     metrics_path: Path = Config.METRICS_PATH,
     report_path: Path = Config.CLASSIFICATION_REPORT_PATH,
 ) -> dict:
-    """Compute metrics + report, save both, and return the metrics dict."""
     labels = labels or Config.CLASS_COLS
     metrics = evaluate(y_true, y_pred, labels, model_name=model_name)
     report_df = build_classification_report_df(y_true, y_pred, labels)
@@ -188,6 +175,7 @@ def evaluate_and_save(
 
 
 def print_summary(metrics: dict) -> None:
+    # Again, got some help from Claude on this one because I wanted to print the output nicely for when you just run the code and aren't looking at the actual reports.
     """Console summary — readable at a glance without opening the JSON."""
     print(f"\nModel: {metrics['model_name']} (v{metrics['model_version']})")
     print(f"Test samples: {metrics['n_test_samples']}")

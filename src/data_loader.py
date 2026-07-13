@@ -1,14 +1,5 @@
-"""Data loading, validation, and multi-label target construction.
-
-Public entry points:
-    load_training_data(input_files=None) -> pd.DataFrame
-        Loads + concatenates the raw CSVs, renames Type 1-4 -> y1-y4, validates
-        required columns, cleans label values, and builds the sentinel-filled
-        multi-label targets (y2/y3/y4).
-
-Run standalone to smoke-test:
-    python -m src.data_loader
-"""
+# Base class for every model in the system.  Defines one shared interface (fit, predict, confidence, save, load) so each
+# model works the same way and can be swapped in the pipeline without changes.
 
 import logging
 from pathlib import Path
@@ -17,27 +8,25 @@ import pandas as pd
 
 from src.config import Config
 
+# logger for output, set to __name__ so the readouts can be used as breadcrumbs for debugging.
+# This is the same setup for all files in the project, so I'll only comment it here.
 logger = logging.getLogger(__name__)
 
-
-# --------------------------------------------------------------------------- #
-# Loading
-# --------------------------------------------------------------------------- #
+# read a CSV and provide failure message if missing
 def _read_single_csv(path: Path) -> pd.DataFrame:
-    """Read one CSV, failing early with a clear message if it's missing."""
     if not path.exists():
-        raise FileNotFoundError(f"Expected input CSV not found: {path}")
-    # skipinitialspace mirrors the prototype; the source files have padded fields.
+        raise FileNotFoundError(f"CSV not found: {path}")
+    # handle padded fields with skipinitialspace
     return pd.read_csv(path, skipinitialspace=True)
 
-
+# load the CSVs and concatenate them
 def load_raw(input_files: list[Path] | None = None) -> pd.DataFrame:
-    """Load and concatenate the raw CSVs, then rename the label columns."""
     input_files = input_files or Config.INPUT_FILES
 
     frames = []
     for path in input_files:
         df = _read_single_csv(path)
+        # update the column names from the CSV versions to the project label versions
         df = df.rename(columns=Config.RENAME_MAP)
         logger.info("Loaded %s rows from %s", len(df), path.name)
         frames.append(df)
@@ -47,15 +36,10 @@ def load_raw(input_files: list[Path] | None = None) -> pd.DataFrame:
     return combined
 
 
-# --------------------------------------------------------------------------- #
-# Validation
-# --------------------------------------------------------------------------- #
+# validation
 def validate(df: pd.DataFrame, require_labels: bool = True) -> None:
-    """Fail early on structural problems instead of producing bad predictions.
-
-    require_labels=False is used at inference time, where new messages arrive
-    without the y2/y3/y4 columns.
-    """
+    # Fails early on structural problems rather than producing bad predictions.
+    # Uses require_labels=False during inference because many messages don't have y2,y3,y4 columns.
     required = list(Config.TEXT_COLS)
     if require_labels:
         required += Config.CLASS_COLS
@@ -67,7 +51,7 @@ def validate(df: pd.DataFrame, require_labels: bool = True) -> None:
             f"Found columns: {list(df.columns)}"
         )
 
-    # At least one text column must contain usable (non-empty) text.
+    # At least one text column must contain usable text.
     text_filled = (
         df[Config.TEXT_COLS]
         .apply(lambda s: s.astype(str).str.strip().replace({"nan": ""}))
@@ -77,48 +61,32 @@ def validate(df: pd.DataFrame, require_labels: bool = True) -> None:
         raise ValueError("No usable text found in any text column.")
 
 
-# --------------------------------------------------------------------------- #
-# Cleaning / target construction
-# --------------------------------------------------------------------------- #
+# cleaning text for processing (changes NaN to empty string instead)
 def _coerce_text(df: pd.DataFrame) -> pd.DataFrame:
-    """Force text columns to clean strings (handles NaN -> '' up front)."""
     for col in Config.TEXT_COLS:
         df[col] = df[col].fillna("").astype(str)
     return df
 
-
+# strips whitespace
 def _clean_label(series: pd.Series) -> pd.Series:
-    """Strip whitespace and normalise missing values to <NA>.
-
-    The raw data has trailing spaces (e.g. 'In-App Purchase '), which would
-    otherwise create spurious duplicate classes.
-    """
     cleaned = series.astype(str).str.strip()
-    # Treat empties and stringified NaNs as genuinely missing.
+    # treat empties and stringified NaNs as missing
     cleaned = cleaned.replace({"": pd.NA, "nan": pd.NA, "None": pd.NA})
     return cleaned
 
-
+# requires y2 as the core column, and adds the SENTINEL_LABEL to any empties in y3/y4
 def build_targets(df: pd.DataFrame) -> pd.DataFrame:
-    """Clean label columns; require the core label y2; sentinel-fill y3/y4.
-
-    Policy:
-      - y2 is the core target and must be present -> rows missing it are dropped
-        (a no-op on the provided data, but a safeguard against malformed input).
-      - y3/y4 are secondary and default to SENTINEL_LABEL when absent, so every
-        retained row is predictable across all three targets.
-    """
     for col in Config.CLASS_COLS:
         df[col] = _clean_label(df[col])
 
-    # Drop rows missing the core label, with an audit log of how many.
+    # drop rows missing the core label and log them
     n_before = len(df)
     df = df.loc[df["y2"].notna()].copy()
     dropped = n_before - len(df)
     if dropped:
         logger.warning("Dropped %s row(s) missing core label y2", dropped)
 
-    # Sentinel-fill secondary labels, logging the fill counts for auditability.
+    # logging all SENTINEL_LABEL injections
     for col in ("y3", "y4"):
         n_missing = int(df[col].isna().sum())
         if n_missing:
@@ -127,15 +95,11 @@ def build_targets(df: pd.DataFrame) -> pd.DataFrame:
                 n_missing, col, Config.SENTINEL_LABEL,
             )
         df[col] = df[col].fillna(Config.SENTINEL_LABEL)
-
     return df
 
 
-# --------------------------------------------------------------------------- #
-# Public entry point
-# --------------------------------------------------------------------------- #
+# loading data from sources, then running the various processing steps
 def load_training_data(input_files: list[Path] | None = None) -> pd.DataFrame:
-    """Full training-data path: load -> validate -> coerce text -> build targets."""
     df = load_raw(input_files)
     validate(df, require_labels=True)
     df = _coerce_text(df)
@@ -143,13 +107,10 @@ def load_training_data(input_files: list[Path] | None = None) -> pd.DataFrame:
     logger.info("Final training dataset: %s rows", len(df))
     return df
 
+# loading data from the new_messages CSV
+# This function is different from above because it doesn't require label columns or build targets and it doesn't drop rows.
+# It simply reads the messages and gets them ready for predictions no matter what.
 def load_inference_data(input_file: str | Path) -> pd.DataFrame:
-    """Load a single CSV of new messages for inference.
-
-    Unlike load_training_data, this does NOT require label columns, does NOT
-    build targets, and does NOT drop any rows — every input message must receive
-    a prediction. Validation runs in label-free mode (text columns only).
-    """
     input_file = Path(input_file)
     df = _read_single_csv(input_file)
     df = df.rename(columns=Config.RENAME_MAP)  # harmless if Type cols are absent
@@ -160,6 +121,7 @@ def load_inference_data(input_file: str | Path) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
+    # Got a bit of guidance from Claude on this one, as I've never set up a logger before and wasn't sure how to write everything out.
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     data = load_training_data()
     print("\nShape:", data.shape)

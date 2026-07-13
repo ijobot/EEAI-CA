@@ -1,3 +1,5 @@
+# preprocessing, de-duping, template stripping, noise removing
+
 """Text preprocessing: de-duplication, template stripping, and noise removal.
 
 Public entry points (all return a new DataFrame, never mutate in place):
@@ -26,14 +28,13 @@ from src.config import Config
 
 logger = logging.getLogger(__name__)
 
-# Raw-data column used only for training-time de-duplication.
+# column used only for training de-dup
 TICKET_ID_COL = "Ticket id"
 
+# reorganized pattern definitions
+# all regex strings with backslashes have "r" added to address the prototype's several thrown warnings
 
-# --------------------------------------------------------------------------- #
-# Pattern definitions
-# --------------------------------------------------------------------------- #
-# Multilingual customer-support signature/footer templates to strip.
+# multilingual customer support templates
 _CU_TEMPLATES = [
     r"(?:Aspiegel|\*\*\*\*\*\(PERSON\)) Customer Support team\,?",
     r"(?:Aspiegel|\*\*\*\*\*\(PERSON\)) SE is a company incorporated under the laws of Ireland with its headquarters in Dublin, Ireland\.?",
@@ -47,7 +48,7 @@ _CU_TEMPLATES = [
     r"Il tuo team ad (?:Aspiegel|\*\*\*\*\*\(PERSON\)),?",
 ]
 
-# Email/thread split markers (used to segment interaction content).
+# email/thread split markers used to segment interactions
 _SPLIT_PATTERNS = [
     r"From\s?:\s?xxxxx@xxxx.com Sent\s?:.{30,70}Subject\s?:",
     r"On.{30,60}wrote:",
@@ -56,9 +57,7 @@ _SPLIT_PATTERNS = [
     r"\s?\*\*\*\*\*\(PHONE\)",
 ]
 
-# Boilerplate phrases / dates / greetings removed from lowercased content.
-# NOTE: the two implicit string-concatenation bugs from the prototype's noise_1
-# list (missing commas) are fixed here — these are now four separate patterns.
+# boilerplate phrases, dates, and greetings removed
 _CONTENT_PHRASE_PATTERNS = [
     r"(?:from :)|(?:subject :)|(?:sent :)|(?:r\s*:)|(?:re\s*:)",
     r"(?:january|february|march|april|may|june|july|august|september|october|november|december)",
@@ -99,23 +98,17 @@ _CONTENT_PHRASE_PATTERNS = [
     r"canada, australia, new zealand and other countries",
 ]
 
-# Ticket-summary-specific prefix noise (fwd/re markers, brackets, null/nan, etc.).
+# prefix noise (fwd/re, brackets, null/nan, etc)
 _SUMMARY_NOISE = (
     r"(?:sv\s*:)|(?:wg\s*:)|(?:ynt\s*:)|(?:fw(?:d)?\s*:)|(?:r\s*:)|(?:re\s*:)|"
     r"(?:\[|\])|(?:aspiegel support issue submit)|(?:null)|(?:nan)|"
     r"(?:(?:bonus place my )?support.pt 自动回复:)"
 )
 
-
+# Helper function to join all patterns in a given string processing group.  We run this once to combine all patterns, whereas the prototype
+# ran this functionality in a loop, resulting in excess compute and recompiling on every row - not sustainable at all at scale.
 def _combine(patterns: list[str]) -> str:
-    """Join patterns into a single non-capturing alternation.
-
-    Reuses the combine-into-one-pattern technique the prototype already used for
-    cu_pattern, but which it never applied to the ~30-item noise list. Compiling
-    once (below) avoids recompiling these on every row.
-    """
     return "|".join(f"(?:{p})" for p in patterns)
-
 
 _CU_RE = re.compile(_combine(_CU_TEMPLATES))
 _SPLIT_RE = re.compile(_combine(_SPLIT_PATTERNS))
@@ -123,20 +116,10 @@ _PHRASE_RE = re.compile(_combine(_CONTENT_PHRASE_PATTERNS))
 _SUMMARY_RE = re.compile(_SUMMARY_NOISE)
 
 
-# --------------------------------------------------------------------------- #
-# De-duplication (training-time; ticket-aware)
-# --------------------------------------------------------------------------- #
+# de-duplication
 def deduplicate(df: pd.DataFrame) -> pd.DataFrame:
-    """Remove repeated segments within each ticket's interaction content.
-
-    Splits each interaction on email/thread markers, strips signature templates,
-    and keeps only segments not already seen earlier in the same ticket. The
-    logic is genuinely stateful (order-dependent within a ticket), so it stays a
-    per-ticket loop rather than a vectorised op.
-
-    Skipped entirely when there is no ticket id (inference), where a single
-    message has nothing to de-duplicate against.
-    """
+    # removes repeated phrases/segments within each ticket's interaction
+    # skipped if there is no ticket id from inference
     if TICKET_ID_COL not in df.columns:
         logger.info(
             "No '%s' column; skipping ticket-level de-duplication.", TICKET_ID_COL
@@ -162,17 +145,8 @@ def deduplicate(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# --------------------------------------------------------------------------- #
-# Row-level cleaning (training AND inference — must stay identical)
-# --------------------------------------------------------------------------- #
+# row cleaning (training and inference identical)
 def clean_text(df: pd.DataFrame) -> pd.DataFrame:
-    """Lowercase and strip boilerplate/noise from both text columns.
-
-    Applied the same way in training and inference to preserve training-serving
-    consistency. Both columns now receive the same shared cleaning (the prototype
-    cleaned summary and content with inconsistent rigor); the summary also gets
-    its prefix-noise pass.
-    """
     df = df.copy()
     for col in Config.TEXT_COLS:
         if col not in df.columns:
@@ -183,25 +157,24 @@ def clean_text(df: pd.DataFrame) -> pd.DataFrame:
         if col == Config.TICKET_SUMMARY:
             s = s.str.replace(_SUMMARY_RE, " ", regex=True)
 
-        # Remove thread markers, signature templates, boilerplate phrases.
+        # remove markers, templates, boilerplate phrases.
         s = s.str.replace(_SPLIT_RE, " ", regex=True)
         s = s.str.replace(_CU_RE, " ", regex=True)
         s = s.str.replace(_PHRASE_RE, " ", regex=True)
 
-        # General normalisation: drop digits, non-alphanumerics, isolated chars.
+        # general clean-up: drop digits, non-alphanumerics, isolated characters
         s = s.str.replace(r"\d+", " ", regex=True)
         s = s.str.replace(r"[^0-9a-z]+", " ", regex=True)
         s = s.str.replace(r"(?:\s|^).(?:\s|$)", " ", regex=True)
         s = s.str.replace(r"\s+", " ", regex=True).str.strip()
 
+        # add fully cleaned string to column
         df[col] = s
 
     return df
 
 
-# --------------------------------------------------------------------------- #
-# Public wrapper
-# --------------------------------------------------------------------------- #
+# wrapper for calling both dedup and clean_text in one shot
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     """Full preprocessing path: de-duplicate (if possible) then clean text."""
     df = deduplicate(df)
