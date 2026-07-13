@@ -1,24 +1,5 @@
 # preprocessing, de-duping, template stripping, noise removing
 
-"""Text preprocessing: de-duplication, template stripping, and noise removal.
-
-Public entry points (all return a new DataFrame, never mutate in place):
-
-    deduplicate(df) -> ticket-level de-duplication of interaction content.
-        Training-time enhancement. No-op when there is no 'Ticket id' column
-        (e.g. single new messages at inference), so it is safe to call in both
-        pipelines.
-
-    clean_text(df)  -> row-level lowercasing + boilerplate/noise removal, applied
-        IDENTICALLY at training and inference. This is the part that guarantees
-        training-serving consistency.
-
-    preprocess(df)  -> convenience wrapper: deduplicate() then clean_text().
-
-Run standalone to smoke-test:
-    python -m src.preprocessing
-"""
-
 import logging
 import re
 
@@ -176,7 +157,6 @@ def clean_text(df: pd.DataFrame) -> pd.DataFrame:
 
 # wrapper for calling both dedup and clean_text in one shot
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
-    """Full preprocessing path: de-duplicate (if possible) then clean text."""
     df = deduplicate(df)
     df = clean_text(df)
     return df
